@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Puzzle Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<style>
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #5f9ea0;
+    }
+    .tile {
+        transition: all 0.3s ease;
+    }
+    .tile:hover {
+        transform: scale(1.05);
+    }
+</style>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-white text-center mb-8">Word Builder Puzzle</h1>
+        
+        <div class="bg-white rounded-lg p-6 shadow-lg max-w-md mx-auto">
+            <div class="mb-4">
+                <p class="text-gray-700 mb-2">Score: <span id="score">0</span></p>
+                <p class="text-gray-700">Time: <span id="timer">60</span>s</p>
+            </div>
+
+            <div id="letters-grid" class="grid grid-cols-4 gap-2 mb-6">
+                <!-- Letters will be dynamically inserted here -->
+            </div>
+
+            <div class="mb-4">
+                <input type="text" id="word-input" readonly 
+                    class="w-full p-2 border-2 border-gray-300 rounded text-xl text-center" 
+                    placeholder="Your word here">
+            </div>
+
+            <div class="flex gap-2 mb-4">
+                <button onclick="submitWord()" 
+                    class="flex-1 bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">
+                    Submit
+                </button>
+                <button onclick="clearWord()" 
+                    class="flex-1 bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">
+                    Clear
+                </button>
+            </div>
+
+            <div class="text-sm text-gray-600 mt-4">
+                <p>Found Words:</p>
+                <div id="found-words" class="mt-2 flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+        
+        <footer class="text-center mt-8 text-white">
+            Created by Swastik Sarkar(425)
+        </footer>
+    </div>
+
+    <script>
+        let score = 0;
+        let selectedLetters = [];
+        let foundWords = new Set();
+        let timeLeft = 60;
+        
+        const dictionary = new Set([
+            'cat', 'dog', 'rat', 'bat', 'hat', 'mat', 'sat', 'fat',
+            'eat', 'tea', 'sea', 'pea', 'bee', 'see', 'fee', 'tie',
+            'pie', 'lie', 'die', 'tag', 'bag', 'rag', 'wag', 'lag'
+        ]);
+
+        function generateLetters() {
+            const vowels = 'aeiou';
+            const consonants = 'bcdfghjklmnpqrstvwxyz';
+            let letters = '';
+            
+            // Ensure at least 2 vowels
+            for(let i = 0; i < 2; i++) {
+                letters += vowels[Math.floor(Math.random() * vowels.length)];
+            }
+            
+            // Fill rest with random letters
+            for(let i = 0; i < 14; i++) {
+                letters += Math.random() > 0.6 
+                    ? vowels[Math.floor(Math.random() * vowels.length)]
+                    : consonants[Math.floor(Math.random() * consonants.length)];
+            }
+            
+            return letters.split('').sort(() => Math.random() - 0.5);
+        }
+
+        function createGrid() {
+            const grid = document.getElementById('letters-grid');
+            grid.innerHTML = '';
+            const letters = generateLetters();
+            
+            letters.forEach((letter, index) => {
+                const tile = document.createElement('button');
+                tile.className = 'tile bg-blue-500 text-white text-xl font-bold p-4 rounded shadow hover:bg-blue-600';
+                tile.textContent = letter;
+                tile.onclick = () => selectLetter(letter, index);
+                grid.appendChild(tile);
+            });
+        }
+
+        function selectLetter(letter, index) {
+            const tiles = document.querySelectorAll('.tile');
+            tiles[index].classList.add('bg-blue-700');
+            selectedLetters.push(letter);
+            document.getElementById('word-input').value = selectedLetters.join('');
+        }
+
+        function submitWord() {
+            const word = selectedLetters.join('').toLowerCase();
+            if(word.length < 3) {
+                alert('Word must be at least 3 letters long!');
+                return;
+            }
+            
+            if(dictionary.has(word) && !foundWords.has(word)) {
+                score += word.length;
+                foundWords.add(word);
+                document.getElementById('score').textContent = score;
+                
+                const wordSpan = document.createElement('span');
+                wordSpan.className = 'bg-gray-200 px-2 py-1 rounded';
+                wordSpan.textContent = word;
+                document.getElementById('found-words').appendChild(wordSpan);
+            } else if(foundWords.has(word)) {
+                alert('Word already found!');
+            } else {
+                alert('Not a valid word!');
+            }
+            
+            clearWord();
+        }
+
+        function clearWord() {
+            selectedLetters = [];
+            document.getElementById('word-input').value = '';
+            document.querySelectorAll('.tile').forEach(tile => {
+                tile.classList.remove('bg-blue-700');
+            });
+        }
+
+        function startTimer() {
+            const timerElement = document.getElementById('timer');
+            const timer = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = timeLeft;
+                
+                if(timeLeft <= 0) {
+                    clearInterval(timer);
+                    alert(`Game Over! Your score: ${score}`);
+                    if(confirm('Play again?')) {
+                        resetGame();
+                    }
+                }
+            }, 1000);
+        }
+
+        function resetGame() {
+            score = 0;
+            timeLeft = 60;
+            foundWords.clear();
+            document.getElementById('score').textContent = '0';
+            document.getElementById('timer').textContent = '60';
+            document.getElementById('found-words').innerHTML = '';
+            createGrid();
+            startTimer();
+        }
+
+        // Initialize game
+        createGrid();
+        startTimer();
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
